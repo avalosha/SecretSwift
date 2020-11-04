@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import LocalAuthentication
 
 class ViewController: UIViewController {
 
@@ -24,7 +25,32 @@ class ViewController: UIViewController {
 
     
     @IBAction func authenticateTapped(_ sender: UIButton) {
-        unlockSecretMessage()
+        let context = LAContext()
+        var error: NSError?
+        //El error se devolvera en una instancia de tipo NSError
+        //Equivalente de inout en Obj-C es un puntero
+        //Con &error = si encuentra un error, aquí está el lugar en la memoria donde debe almacenar ese error para que pueda leerlo
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = "Identify yourself!"
+            
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) {
+                [weak self] succes, autheticationError in
+                
+                DispatchQueue.main.async {
+                    if succes {
+                        self?.unlockSecretMessage()
+                    } else {
+                        let ac = UIAlertController(title: "Authentication failed", message: "You could not be verified; please try again.", preferredStyle: .alert)
+                        ac.addAction(UIAlertAction(title: "OK", style: .default))
+                        self?.present(ac, animated: true)
+                    }
+                }
+            }
+        } else {
+            let ac = UIAlertController(title: "Biometry unavailable", message: "Your device is not configured for biometric authentication.", preferredStyle: .alert)
+            ac.addAction(UIAlertAction(title: "OK", style: .default))
+            self.present(ac,animated: true)
+        }
     }
     
     @objc func adjustForKeyboard(notification: Notification) {
